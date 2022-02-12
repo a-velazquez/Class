@@ -1,0 +1,105 @@
+---
+title: "Applied Statistical Programming - Spring 2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+\begin{center}
+{\Large{\textbf{Problem Set 2}}} \\
+\vspace{4 bp}
+Due Wednesday, February 16, 10:00 AM (Before Class) \\
+\end{center}
+
+\section*{Instructions}
+\begin{enumerate}
+\item The following questions should each be answered in this Rmarkdown document with R code to accompany the R output. Be sure to provide many comments in the script to facilitate grading. Undocumented code will not be graded. Once your work is finished, submit the Rmd file as well as the knitted PDF to the appropriate problem set module on Canvas.
+\item You may work in teams, but each student should develop their own R script. To be clear, there should be no copy and paste. Each keystroke in the assignment should be your own.
+\item If you have any questions regarding the Problem Set, contact the TA or use office hours.
+\item For students new to programming, this may take a while. Get started.
+\end{enumerate}
+
+
+
+\section*{Benford's law}
+
+Recent work in political science has proposed Benford's law as a
+method for identifying electoral fraud.  The idea is that specific
+integer totals should appear in the \textit{first significant digit} a
+known number of times if the data is being generated ``naturally.''
+
+\subsubsection*{1. Calculating violations}
+
+Two ways of testing violations of Benford's law are proposed below.
+Let $X_i$ represent the observed proportional frequency of the integer
+$i$ in observed vote totals.  So, for example, $X_1$ would represent
+the proportion vote totals where the integer $1$ appears in the first
+significant digit.
+
+\begin{itemize}
+\item Leemis' $m$ statistic
+
+$$m = max_{i=1}^9\Big\{ (X_i) - log_{10}(1+1/i)\Big\} $$
+\item Cho-Gains' $d$
+
+$$d = \sqrt{\sum_{i=1}^9\Big( (X_i) - log_{10}(1+1/i)\Big)^2 }$$
+
+
+\end{itemize}
+
+
+\noindent Write a function to calculate these statistics.  The
+function should take as an input (i) a matrix or vector of election
+returns and (ii) an option (or options) that controls whether the $m$
+statistic should be calculated, the $d$ statistic should be calculated,
+or both.  The output should be a list containing the results,
+\textit{including the full digit distribution}.
+
+
+```{r}
+# Question 1 Code
+```
+
+
+\subsubsection*{2. Critical values}
+
+
+For each statistic, we can reject the null hypothesis of \textit{no
+  fraud} if the statistic reaches the critical values in the table below.
+
+\begin{center}
+\begin{tabular}{l l l l}
+& $\alpha=0.10$ & $\alpha=0.05$ & $\alpha=0.01$ \\
+Leemis' $m$ & 0.341 & 0.691 & 0.875 \\
+Cho-Gains' $d$ & 0.391 & 0.651 & 0.933 \\
+\end{tabular}
+\end{center}
+
+
+
+\noindent 
+Create a new function called \texttt{print.benfords()} that will output a table containing:
+
+\begin{itemize}
+\item The name of each statistic
+\item The statistic as it was calculated
+\item The relevant number of asterisk's (e.g., one star for
+  significance at the $\alpha=.10$ level, etc.)
+\item A legend at the bottom explaining the asterisk's (similar to
+  what you see when you print an \texttt{lm} object.).
+\end{itemize}
+
+\noindent You can provide this output in any way you like, but it must be
+clearly organized and easy to understand.  Don't forget to document your code.
+
+```{r}
+# Question 2 Code
+```
+
+
+
+

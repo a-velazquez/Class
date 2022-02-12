@@ -1,0 +1,235 @@
+---
+title: "Applied Statistical Programming - Classes and basic data structures"
+subtitle: "Messi Lee, Alma Velazquez, Jordan Duffin Wong"
+date: "1/26/2022"
+header-includes:
+   - \usepackage{amsmath}
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy=TRUE)
+```
+
+\textbf{Write the R code to answer the following questions. Write the code and then
+show what the computer returns when that code is run. Make sure to change the appropriate header in the R code block to make this document compile.}
+
+Please put your name at the top of this sheet of paper. You have until the beginning of class 1/31 at 10:00am to answer all of the questions below. You may use R, but not any online documentation. Submit the Rmarkdown and the knitted PDF to Canvas.
+
+
+1. Change the sign of every odd number in x
+\begin{verbatim}
+x <- sample(-100:100, size = 100) 
+\end{verbatim}
+```{r}
+#Code
+set.seed(666)
+x <- sample(-100:100, size = 100)
+print(x)
+
+for (i in 1:length(x)) {
+  a <- x[i] %% 2
+  if (a != 0){
+    x[i] <- x[i] * -1
+  }
+  # if ((x[i] %% 2) != 0){
+  #     x[i] <- x[i] * -1
+  # }
+  # print(i)
+}
+print(x)
+```
+
+2. Take the dot product of x and y
+\begin{verbatim}
+x <- 1:100
+y <- 100:1
+\end{verbatim}
+```{r}
+#Code
+x <- 1:100
+y <- 100:1
+
+z <- x%*%y
+```
+
+
+3. Use the \texttt{seq()} and \texttt{paste()} to create the vector called \texttt{varnames} containing
+\begin{verbatim}
+"Var1" "Var2" "Var3" "Var4" "Var5" "Var6"
+\end{verbatim}
+```{r}
+#Code
+varnames <- paste("Var",seq(1, 6), sep = "")
+print(varnames)
+```
+
+
+4. Remove the substring \texttt{``Var''} from the \texttt{varnames} vector
+```{r}
+#Code
+varnames <- gsub("Var", replacement = "", varnames)
+print(varnames)
+```
+
+
+5. Recast the \texttt{varnames} vector into a numeric.
+```{r}
+#Code
+varnames <- as.numeric(varnames)
+print(varnames)
+```
+
+
+6. Subset the resulting vector \texttt{varnames} to be only odd numbers and make a new vector called  \texttt{varnames2} 
+```{r}
+#Code
+varnames2 <- varnames[c(TRUE, FALSE)]
+print(varnames2)
+```
+
+
+7. If I run the command
+\begin{verbatim}
+varnames - varnames2
+\end{verbatim}
+
+what calculation is being performed?
+```{r}
+#Code
+varnames - varnames2
+# Recycling varnames2 and doing elementwise subtraction
+```
+
+
+\textbf{Run the commands below, and then answer the questions listed below.}
+\begin{verbatim}
+rm(list=ls())
+example(lm)
+newLM<-unclass(lm.D90)
+\end{verbatim}
+
+
+
+1. What is the class of element \texttt{model} component of \texttt{lm.D90}?
+```{r}
+#Code
+rm(list=ls()) # clearing the environment
+example(lm) # calling the lm example
+newLM<-unclass(lm.D90) # unclassing the lm.D90 thing from the example
+
+class(lm.D90$model)
+# lm.D90$model is a data.frame object
+```
+
+
+2. What is the class of \texttt{newLM}?  How does this compare with the class of \texttt{lm.D90}?
+```{r}
+#Code
+class(lm.D90)
+class(newLM)
+# the original is an lm object, but using unclass()
+# turned lm.D90 into a list, called newLM
+```
+
+
+3. Change the \texttt{names} attribute of the \texttt{model} component in \texttt{lm.D90} to \texttt{Var1} \texttt{Var2}
+```{r}
+#Code
+
+attributes(lm.D90$model)$names <- c("Var1", "Var2")
+# lm.D90$model
+```
+
+
+4. Using matrix algebra commands, calculate the usual OLS estimate
+  (without a constant) for this regression.  Compare your results with
+  the coefficients estimated by \texttt{lm()}.\
+  
+  Formula: $(X^TX)^{-1}X^Ty$
+  
+```{r}
+#Code
+
+# original formula: weight ~ group - 1 
+# the -1 REMOVES the intercept, so results should match
+# Var1 is weight, Var2 is group
+
+lm.D90$coefficients
+
+dat <- lm.D90$model
+
+ctl<-as.numeric(dat$Var2=="Ctl")
+trt<-as.numeric(dat$Var2=="Trt")
+
+x_1_1 <- matrix(c(ctl,trt),ncol=2)
+y<-dat$Var1
+
+beta_hat_1_1 <- solve(t(x_1_1) %*% x_1_1) %*% (t(x_1_1) %*% y)
+beta_hat_1_1
+```
+
+
+5. Re-do this calculation, but now include a constant term.
+```{r}
+
+# With an intercept, this is a dependent system; "Treatment" is a free variable
+# reg2 <- lm(data = dat, Var1 ~ Var2)
+# reg2$coefficients
+
+# Beause this is a dependent system, only include last 2 variables (treatment and intercept) in order for calculation to work; one of the variables is redundant
+x_1_2 <- matrix(c(x_1_1,rep(1,length(x_1_1[,1]))),ncol=3)
+
+beta_hat_1_2 <- solve(t(x_1_2[,2:3]) %*% x_1_2[,2:3]) %*% (t(x_1_2[,2:3]) %*% y)
+beta_hat_1_2
+```
+
+
+6. Randomly switch the values of the first ten observations in the \texttt{group} objects and re-estimate the linear models.  
+```{r}
+#Code
+
+# Recall that group is Var2
+x_2_1 <- x_1_1
+x_2_1[c(5,3,7,9),1] <- x_2_1[c(5,3,7,9),2]
+x_2_1[c(1,2,3,4),2] <- x_2_1[c(5,6,7,8),1]
+
+beta_hat_2_1 <- solve(t(x_2_1) %*% x_2_1) %*% (t(x_2_1) %*% y)
+beta_hat_2_1
+
+x_2_2 <- matrix(c(x_2_1,rep(1,length(x_2_1[,1]))),ncol=3)
+
+beta_hat_2_2 <- solve(t(x_2_2) %*% x_2_2) %*% (t(x_2_2) %*% y)
+beta_hat_2_2
+
+```
+
+
+7. Create a 4 by 2 by 20 array containing the \texttt{model} object from all four linear model objects above.  Include the appropriate names for each dimension.
+```{r}
+m1x <- as.factor(ifelse(x_1_1[,1]==1,"Ctl","Trt"))
+model1 <- cbind(y, m1x)
+
+m2x <- as.factor(ifelse(x_1_2[,1]==1,"Ctl","Trt"))
+model2 <- cbind(y, m2x)
+
+m3x <- as.factor(ifelse(x_2_1[,1]==1,"Ctl","Trt"))
+model3 <- cbind(y, m3x)
+
+m4x <- as.factor(ifelse(x_2_2[,1]==1,"Ctl","Trt"))
+model4 <- cbind(y, m4x)
+
+model_array <- array(c(model1, model2, model3, model4), c(20,2,4), dimnames = list(1:20, c("weight","group"), c("Model 1","Model 2", "Model 3", "Model 4")))
+
+model_array
+```
+
+
+8. Create a new list containing the regression coefficients from all four models.
+```{r}
+coeff_list <- list(beta_hat_1_1, beta_hat_1_2, beta_hat_2_1, beta_hat_2_2)
+coeff_list
+```
+
+
+

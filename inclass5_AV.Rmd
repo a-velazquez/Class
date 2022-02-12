@@ -1,0 +1,166 @@
+---
+title: "Applied Statistical Programming - Functions"
+date: "2/2/2022"
+header-includes:
+   - \usepackage{amsmath}
+output: pdf_document
+---
+
+Names: Alma, Cassandra, Messi, Zion
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\textbf{Write the R code to answer the following questions. Write the code and then show what the computer returns when that code is run. Thoroughly comment your code describing your thought process when answering the questions.}
+
+You have until the beginning of class 2/7 at 10:00am to answer all of the questions below. You may use R, but not any online documentation. Submit the Rmarkdown and the knitted PDF to Canvas. Only one member of your group needs to submit the in class exercise.
+
+1. Use the following code block to generate data $x$ and $y$ along with a fitted model. 
+
+```{r tidy=TRUE}
+set.seed(12345)
+n <- 20 # 20 observations in the sample
+x <- runif(n, min = -1, max = 1) # Sample uniformly from [-1,1]
+noise <- rnorm(n, mean = 0, sd = 0.3) # We have a noisy sample
+y <- 1 + 3*x + noise # generate the response variable
+df <- as.data.frame(matrix(data = cbind(y,x), 
+                           nrow = n, 
+                           ncol = 2))
+colnames(df) <- c("y", "x")
+model <- lm(y ~ x, data = df)
+summary(model)
+```
+
+a. Create a function that reports the root mean squared error (RMSE) of model predictions. Your function must only take vectors the $x$, $y$, and \texttt{lm()} objects as inputs. For $N$ observations indexed by $i$, the equation for RMSE is provided.
+$$ RMSE = \sqrt{\frac{\sum^{N}_{i=1}\left( \hat{y}_{i} - y_{i} \right)^{2}}{N}}$$
+```{r tidy=TRUE}
+
+rmse <- function(x, y, model){
+  N <- length(x)
+  rmse <- sqrt((sum((model$fitted.values - y)^2))/N)
+  return(list("RMSE"=rmse))
+}
+
+rmse(x, y, model)
+```
+
+b. If $x$ and $y$ are not the same length, report an error instead of calculating the RMSE.
+```{r tidy=TRUE, eval=FALSE}
+
+rmse <- function(x, y, model){
+  N = length(x)
+  length_test <- N==length(y)
+  if(!length_test){
+    stop('Error. Length of x and y not same.')
+  } else{
+    rmse <- sqrt((sum((model$fitted.values - y)^2))/N)
+    return(list("RMSE"=rmse))
+  }
+}
+
+
+x.1 <- x[-1]
+rmse(x.1, y)
+```
+
+c. If either $x$ or $y$ are non-numeric, report an error instead of calculating the RMSE.
+```{r tidy=TRUE, eval=FALSE}
+
+rmse <- function(x, y, model){
+  N = length(x)
+  length_test <- N==length(y)
+  class_test <- is.numeric(x) & is.numeric(y)
+  
+  if(!length_test){
+    stop('Error. Length of x and y not same.')
+  } else if(!class_test){
+    stop("Error. Both x and y must be numeric")
+  } else{
+    rmse <- sqrt((sum((model$fitted.values - y)^2))/N)
+    return(list("RMSE"=rmse))
+  }
+}
+
+
+x.2 <- as.character(x)
+rmse(x.2, y, model)
+
+```
+
+
+d. Add a parameter \texttt{likelihood} to your function so that when set to \texttt{TRUE} the function also returns the likelihood of the data in the list. 
+$$
+  L(\hat{y}_{1}, ..., \hat{y}_{N}, \sigma^{2}; y_{1}, ..., y_{N}) = \left( 2 \pi \sigma^{2} \right)^{-N/2} \text{exp}\left( -\frac{1}{2 \sigma^{2}} \sum\limits^{N}_{i=1} \left( y_{i} - \hat{y}_{i} \right)^{2} \right)$$
+Use the $y$ provided, the fitted $y$ values from the \texttt{lm()} model object, and use $\sigma^{2} = 0.09$. Be sure to set a default value for \texttt{likelihood}.
+```{r tidy=TRUE}
+
+
+rmse <- function(x, y, model, likelihood=FALSE, sigma_squared=0.09){
+  N = length(x)
+  length_test <- N==length(y)
+  class_test <- is.numeric(x) & is.numeric(y)
+  
+  if(!length_test){
+    stop('Error. Length of x and y not same.')
+  } else if(!class_test){
+    stop("Error. Both x and y must be numeric")
+  } else{
+    rmse = sqrt(sum((model$fitted.values - y)^2)/N)
+    if(likelihood){
+    lh.value <- (2*pi*sigma_squared)^(-N/2) * 
+      exp((-1/(2*sigma_squared) * sum((model$fitted.values - y)^2)))
+    return(list("RMSE"=rmse, "Likelihood"=lh.value))
+  }
+    return(list("RMSE"=rmse))
+  }
+}
+
+
+rmse(x, y, model, TRUE)
+
+```
+
+e. Add a parameter \texttt{logL} to your function so that when set to \texttt{TRUE} the function also returns the log likelihood of the data in the list.
+$$\text{ln }L(\hat{y}_{1}, ..., \hat{y}_{N}, \sigma^{2}; y_{1}, ..., y_{N}) = -\frac{N}{2} \text{ln}(2\pi) - \frac{N}{2}\text{ln}(\sigma^{2}) - \frac{1}{2 \sigma^{2}} \sum\limits^{N}_{i=1}\left( y_{i} - \hat{y}_{i} \right)^{2}$$
+Use the $y$ provided, the fitted $y$ values from the \texttt{lm()} model object, and use $\sigma^{2} = 0.09$. Be sure to set a default value for \texttt{logL}.
+```{r tidy=TRUE}
+
+rmse <- function(x, y, model, likelihood=FALSE, logL=FALSE, sigma_squared=0.09){
+  N = length(x)
+  length_test <- N==length(y)
+  class_test <- is.numeric(x) & is.numeric(y)
+  
+  if(!length_test){
+    stop('Error. Length of x and y not same.')
+  } else if(!class_test){
+    stop("Error. Both x and y must be numeric")
+  } else{
+    rmse = sqrt(sum((model$fitted.values - y)^2)/N)
+    if(likelihood){
+    lh.value <- (2*pi*sigma_squared)^(-N/2) * 
+      exp((-1/(2*sigma_squared) * sum((model$fitted.values - y)^2)))
+    if(logL){
+      log.lh.value <- -(N/2)*log(2*pi) - (N/2)*log(sigma_squared) - 
+        1/(2*sigma_squared) * sum((model$fitted.values - y)^2)
+      return(list("RMSE"=rmse, "Likelihood"=lh.value, "Log_Likelihood"=log.lh.value))
+    }
+    return(list("RMSE"=rmse, "Likelihood"=lh.value))
+  }
+    return(list("RMSE"=rmse))
+  }
+}
+
+
+
+rmse(x, y, model, TRUE, TRUE)
+
+```
+
+
+
+
+
+
+
+
