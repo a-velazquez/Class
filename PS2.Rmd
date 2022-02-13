@@ -1,6 +1,7 @@
 ---
 title: "Applied Statistical Programming - Spring 2022"
 output: pdf_document
+author: Alma Velazquez
 ---
 
 ```{r setup, include=FALSE}
@@ -22,7 +23,6 @@ Due Wednesday, February 16, 10:00 AM (Before Class) \\
 \item If you have any questions regarding the Problem Set, contact the TA or use office hours.
 \item For students new to programming, this may take a while. Get started.
 \end{enumerate}
-
 
 
 \section*{Benford's law}
@@ -59,9 +59,70 @@ statistic should be calculated, the $d$ statistic should be calculated,
 or both.  The output should be a list containing the results,
 \textit{including the full digit distribution}.
 
-
+### Define Function
 ```{r}
 # Question 1 Code
+benfords_stats <- function(x, d=TRUE, m=TRUE){
+  criteria <- is.numeric(x) & (is.vector(x) | is.matrix(x))
+  if(!criteria){
+    stop("Error: x must be a vector or matrix input of type numeric.")
+  }
+  
+  stats <- list("d"=d, "m"=m)
+  
+  first_sigfigs <- as.integer(substr(as.character(as.integer(signif(x,1))),1,1))
+  
+  x_i <- rep(NA, 9)
+  for(i in 1:9){
+    x_i[i] <- sum(first_sigfigs==i)/length(x)
+  }
+  
+  stats <- append(stats,
+                  list("digit_distribution"=data.frame("digit"=1:9,
+                                                       "proportion"=x_i)))
+  
+  if(d){
+    cho_gains <- rep(NA,9)
+    for(i in 1:9){
+    cho_gains[i] <- (x_i[i]-log10(1+(1/i)))^2
+  }  
+    
+    cho_gains <- sqrt(sum(cho_gains))
+    stats <- append(stats, list("m_statistic"=cho_gains))
+    
+   }
+  if(m){
+    leemis <- rep(NA,9)
+    for(i in 1:9){
+      leemis[i] <- x_i[i]-log10((1+(1/i)))
+    }
+    
+    leemis <- max(leemis)
+    stats <- append(stats, list("d_statistic"=leemis))
+     
+  }
+  class(stats) <- "benfords"
+  return(stats)
+}
+```
+
+### Test Function
+```{r}
+library(faraway)
+help(gavote)
+
+gore_votes <- gavote$gore
+benf_gore<-benfords_stats(gore_votes)
+
+bush_votes <- gavote$bush
+benf_bush<-benfords_stats(bush_votes)
+
+
+counties <- read.csv("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/totals/co-est2019-alldata.csv", header = T)
+
+births <- counties$BIRTHS2011
+benf_births <- benfords_stats(births)
+
 ```
 
 
@@ -79,8 +140,6 @@ Cho-Gains' $d$ & 0.391 & 0.651 & 0.933 \\
 \end{tabular}
 \end{center}
 
-
-
 \noindent 
 Create a new function called \texttt{print.benfords()} that will output a table containing:
 
@@ -93,11 +152,54 @@ Create a new function called \texttt{print.benfords()} that will output a table 
   what you see when you print an \texttt{lm} object.).
 \end{itemize}
 
+
 \noindent You can provide this output in any way you like, but it must be
 clearly organized and easy to understand.  Don't forget to document your code.
 
 ```{r}
 # Question 2 Code
+
+print.benfords <- function(x){
+  
+  criteria <- x$d | x$m 
+  
+  if(!criteria){
+    stop("Statistics empty, only digit distribution in object. Access with <ObjectName>$digit_distribution")
+  }
+  
+  sym <- c(" " ,  "*" ,  "**" , "***")
+  alpha <- c(1, 0.10, 0.05, 0.01, 0)
+  
+  legend <- paste(c(rbind(sapply(alpha, format), 
+                          c(sQuote(sym), ""))), 
+                  collapse=" ")
+  output <- c()
+    
+  if(x$d){
+    cpD <- c(0 ,0.391, 0.651, 0.933 ,1)
+    symbolsD <- symnum(x$d_statistic, cpD, sym, legend = FALSE) 
+    output[1] <- paste0(x$d_statistic,symbolsD)
+  } else {output[1] <- "Empty"}
+  
+  if(x$m){
+    cpM <- c(0, 0.341, 0.691, 0.875, 1)
+    symbolsM <- symnum(x$m_statistic, cpM, sym, legend = FALSE) 
+    output[2] <- paste0(x$m_statistic,symbolsM)
+  } else {output[2] <- "Empty"}
+  
+  
+  # Give outputs names
+  names(output) <- c("Cho Gains' D Statistic", "Leemis' M Statistic")
+  
+  names(legend) <- "Significance"
+  
+  # Return in a list
+  return(list(noquote(output), noquote(legend)))
+  
+}
+
+
+print(benf_gore)
 ```
 
 
