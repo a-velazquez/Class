@@ -43,7 +43,7 @@ significant digit.
 \begin{itemize}
 \item Leemis' $m$ statistic
 
-$$m = max_{i=1}^9\Big\{ (X_i) - log_{10}(1+1/i)\Big\} $$
+$$m = max_{i=1}^9\Big\{ (X_i) - log_{10}(1+1/i)\Big\}$$
 \item Cho-Gains' $d$
 
 $$d = \sqrt{\sum_{i=1}^9\Big( (X_i) - log_{10}(1+1/i)\Big)^2 }$$
@@ -74,14 +74,17 @@ benfords_stats <- function(x, d=TRUE, m=TRUE){
   # Include logical inputs to define a method later
   stats <- list("d"=d, "m"=m)
   
-  # Extract the first significant figure from input
+  # Remove NAs, these complicate calculations
+  x <- na.omit(x)
+  
+  # Extract leading digit from input
   # Use table() and prop.table() to get the proportional frequency of each digit
-  first_sigfigs <- prop.table(table(factor(as.integer(substr(as.character(as.integer(signif(x,1))),
-                                                             1,1)), levels = 1:9)))
+  leading_digits <- prop.table(table(factor(as.integer(substr(as.character(x,1),1,1)), levels = 1:9)))
   
   # Reformat into a data frame and include it in the output
-  dist <- data.frame("digit"=as.numeric(names(first_sigfigs)),
-                     "proportion"=as.numeric(first_sigfigs))
+  dist <- data.frame("digit"=as.numeric(names(leading_digits)),
+                     "proportion"=as.numeric(leading_digits))
+  
   stats <- append(stats, list("digit_distribution"=dist))
   
   # This difference per digit is common to both statistics of interest
@@ -203,15 +206,19 @@ print.benfords <- function(x){
   
   # Print statistics and the significance code legend
   print(noquote(output))
-  cat("\nSignificance:", legend)
+  cat("-----------------------------------------------\n",
+      "Significance:", 
+      legend)
 }
 
 
 print(benf_births)
 
 print(benf_gore)
+
+print(benf_bush)
 ```
 
 \
 
-Neither of these tests yield values that allow us to reject the null hypothesis; this is especially weird for the population data. 
+None of these examples yield values that allow us to reject the null hypothesis. 
