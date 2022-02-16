@@ -1,0 +1,193 @@
+---
+title: "Applied Statistical Programming - Environments"
+date: "2/14/2022"
+header-includes:
+   - \usepackage{amsmath}
+   - \usepackage{geometry}
+   - \usepackage{hyperref}
+   - \usepackage{setspace}
+   - \usepackage{url}
+output: pdf_document
+author: Cassandra Custis, Berta Diaz, Zion Little, Alma Velazquez
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\textbf{Write the R code to answer the following questions. Write the code, and then show what the computer returns when that code is run. Thoroughly comment your solutions.}
+
+You have until the beginning of class 2/16 at 10:00am to answer all of the questions below. You may use R, but not any online documentation. Submit the Rmarkdown and the knitted PDF to Canvas. Have one group member submit the activity with all group members listed at the top.
+
+\section*{The Sorting Hat}
+
+\noindent The Hogwarts School of Witchcraft and Wizardry has hired you as an R programming wizard to replace its now-dilapidated sorting hat. In this activity you will create a sorting hat program to decide whether a given student belongs in Gryffindor, Slytherin, Ravenclaw,or Hufflepuff.  
+
+
+
+
+\subsection{Students}
+
+Make a function that will output an S3 object of the class "student." The function will take in an argument "name." Each student should hold four values called, name, courage, ambition, intelligence, and effort.  The function should \textit{randomly} assign integer values to these traits ranging from 1-100.  
+
+```{r tidy=TRUE}
+# Code
+make_student <- function(name){
+  new_student <- list("name"=name,"courage"=sample(100, 1),
+  "ambition"=sample(100, 1),
+  "intelligence"=sample(100, 1),
+  "effort"=sample(100, 1))
+  
+  class(new_student) <- "student"
+  return(new_student)
+  
+}
+
+zion <- make_student("Zion")
+class(zion)
+```
+
+\subsection{Sorter}
+
+Create method for the generic \texttt{sort} that takes in as arguments:
+\begin{itemize}
+  \item An object of the class \texttt{student}
+  \item A matrix with four columns and four rows ($X$).
+\end{itemize}
+Let $a$ be the vector of values for the attributes (courage, ambition, intelligence, effort). The sort method should perform the following calculations.  
+\begin{enumerate}
+  \item Calculate $X^{T}a$, which should result in a vector of length four.  
+  \item If the first element of the resulting vector is largest, return "GRYFFINDOR!", if the second element is largest return "SLYTHERIN!", if the third is largest return "RAVENCLAW!", if the fourth is largest return "HUFFLEPUFF!"
+\end{enumerate}
+
+```{r tidy=TRUE}
+# Code
+
+
+rand_matrix <- matrix(c(sample(50, 16)), ncol=4, nrow=4)
+rand_matrix
+
+sort <- function(x, ...){
+  UseMethod("sort")
+}
+
+sort.student <- function(student, x){
+  a <- c(student$courage, student$ambition, student$intelligence, student$effort)
+  sort <- t(x) %*% a 
+  # print(sort)
+  sort_result <- ifelse(which(sort==max(sort))==1, "GRYFFINDOR", 
+                        ifelse(which(sort==max(sort))==2, "SLYTHERIN", 
+                               ifelse(which(sort==max(sort))==3, "RAVENCLAW", 
+                                      ifelse(which(sort==max(sort))==4, "HUFFLEPUFF", 
+                                             "ERROR"))))
+ 
+  
+  return(sort_result)
+}
+
+sort(zion, rand_matrix)
+
+
+```
+
+\subsection{Modifications}
+
+Alter the sort function the student included in the call is changed in the global environment such that student is assigned a second class  (e.g., "Gryffindor").  Note that the student will now have two class labels.
+```{r tidy=TRUE}
+# Code
+sort.student <- function(student, x){
+  a <- c(student$courage, student$ambition, student$intelligence, student$effort)
+  sort <- t(x) %*% a 
+  # print(sort)
+  sort_result <- ifelse(which(sort==max(sort))==1, "GRYFFINDOR", 
+                        ifelse(which(sort==max(sort))==2, "SLYTHERIN", 
+                               ifelse(which(sort==max(sort))==3, "RAVENCLAW", 
+                                      ifelse(which(sort==max(sort))==4, "HUFFLEPUFF", 
+                                             "ERROR"))))
+ 
+  housed_student <- student
+  class(housed_student) <- c(sort_result,class(student))
+  
+  assign(deparse(substitute(student)), housed_student, envir = .GlobalEnv)
+  
+  return(sort_result)
+}
+
+sort(zion, rand_matrix)
+class(zion)
+```
+
+\subsection{Curfew}
+
+Create four new environments called, "Gryffindor\_Tower", "Black\_Lake", "Ravenclaw\_Tower", and "Basement". These are the dormitories for the Gryffindor, Slytherin, Ravenclaw, and Hufflepuff students respectively.  
+
+Create a generic function called "curfew", and then create curfew methods for each house that that takes a student as input and changes their environment to their appropriate dorm.  
+
+```{r tidy=TRUE}
+library(rlang)
+
+
+Black_Lake <- env()
+Ravenclaw_Tower <- env()
+Basement <- env()
+Gryffindor_Tower <- env()
+
+
+curfew <- function(student){
+  
+  house <- class(student)[1]
+  
+  
+  if(house=="GRYFFINDOR"){
+    assign(deparse(substitute(student)), student, envir=Gryffindor_Tower)
+  }
+  
+  
+   if(house=="SLYTHERIN"){
+    assign(deparse(substitute(student)), student, envir=Black_Lake)
+  }
+  
+   if(house=="RAVENCLAW"){
+    assign(deparse(substitute(student)), student, envir=Ravenclaw_Tower)
+     
+   }
+  
+   if(house=="HUFFLEPUFF"){
+    assign(deparse(substitute(student)), student, envir=Basement)
+     
+   }
+  
+}
+
+
+curfew(zion)
+
+env_print(Black_Lake)
+
+```
+
+```{r}
+
+# Without if statements
+
+curfew <- function(student){
+  common_rooms <- list("GRYFFINDOR"=Gryffindor_Tower, 
+                       "RAVENCLAW"=Ravenclaw_Tower, 
+                       "HUFFLEPUFF"=Basement, 
+                       "SLYTHERIN"=Black_Lake)
+  
+  
+  house <- class(student)[1]
+  targetEnv <- common_rooms[which(names(common_rooms)==house)][[1]]
+  
+    assign(deparse(substitute(student)), student, envir=targetEnv)
+
+}
+
+
+curfew(zion)
+
+env_print(Black_Lake)
+```
+
+
