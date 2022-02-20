@@ -1,0 +1,206 @@
+---
+title: "Applied Statistical Programming - Apply"
+date: "2/16/2022"
+author: Cassandra Custis, Berta Diaz, Zion Little, Alma Velazquez
+header-includes:
+   - \usepackage{amsmath}
+   - \usepackage{geometry}
+   - \usepackage{hyperref}
+   - \usepackage{setspace}
+   - \usepackage{url}
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\textbf{Write the R code to answer the following questions. Write the code, and then show what the computer returns when that code is run. Thoroughly comment your solutions.}
+
+You have until the beginning of class 2/21 at 10:00am to answer all of the questions below. You may use R, but not any online documentation. Submit the Rmarkdown and the knitted PDF to Canvas. Have one group member submit the activity with all group members listed at the top.
+
+\section*{A simulation experiment using \texttt{apply} \& \texttt{plyr}}
+\bigskip
+
+\noindent For this assignment, \textbf{you cannot use looping structures}. You will also need to create \textit{arrays} to work with this problem. If you can imagine matrices layered on top of each other, this is an array. Use the following example to familiarize yourself with making arrays and referencing their values.
+
+```{r tidy=TRUE}
+# Create two vectors of different lengths
+vector1 <- c(5,9,3)
+vector2 <- c(10,11,12,13,14,15)
+
+# Put these vectors into an array of two 3x3 matrices.
+result <- array(c(vector1,vector2),dim = c(3,3,2))
+print(result)
+```
+\medskip
+
+```{r tidy=TRUE}
+# Reference the 3rd column in matrix 2
+result[,3,2]
+```
+\newpage
+
+1. Make a three dimensional array with \texttt{dim=c(20,5, 1000)} and fill it with random data. Think of this as 1000 random datasets with 20 observations and 5 covariates.
+```{r tidy=TRUE}
+# Create an array from 100 random values from 1:1000, recycled with the desired dimensions
+a <- array(sample(1000,100, replace=TRUE), dim=c(20,5, 1000))
+
+# Print the first entry to check it worked
+a[,,1]
+```
+\medskip
+
+2. Use the provided vector of linear model coefficients \texttt{Beta}. Make a function to create $Y$ values for a linear model. The $Y$ values should be a linear combination of the $X$'s plus some random noise. The output should be a 20 by 1000 array.
+
+```{r tidy=TRUE}
+# Remove the eval=FALSE header from this code block before continuing
+Beta <- matrix(c(1,2,0,4,0), ncol=1)
+X<-matrix(rnorm(100), ncol=5, nrow=20)
+X[1,]
+Beta
+X%*%Beta # No noise has been included yet
+
+
+# Define a function that takes in a matrix of x values
+make_output <- function(xmat){
+  # Create vector of noise whose length is the number of rows of the matrix
+  # Noise will be Gaussian
+  noise <- rnorm(nrow(xmat))
+  
+  # Define y as a linear combination of the matrix and Beta
+  y <- xmat %*% Beta
+  
+  # Add noise to y 
+  y <- y + noise
+  
+  # Return the y
+  return(y)
+  
+}
+
+# Test it on the given X matrix,
+make_output(X)
+
+# and on the first entry of the array
+make_output(a[,,1])
+
+# Use apply to make a Y vector for each 20x5 matrix in the array
+# To the third dimension of a (each matrix), apply the make_output function
+Y <- apply(a, 3, make_output)
+
+# Check dimensions of Y
+dim(Y)
+
+# Look at the Y vector generated for the first matrix in a
+Y[,1]
+
+
+```
+
+
+
+
+\medskip
+
+3. Run 1,000 regressions across all of this simulated data.  Have as the output a 1000 by 6 matrix of estimated regression coefficients.
+```{r tidy=TRUE}
+
+# We want to specify a regression for each index of the second dimension of Y and the third dimension of our array, a.
+dim(a)
+dim(Y)
+
+# Each regression will look like this
+# test_lm <- lm(Y[,1] ~ a[,,1])
+
+# Define a function that takes in an index
+make_reg <- function(i){
+  # It will define an x matrix based on this index for the
+  # third dimension of a,
+  x <- a[,,i]
+  # and a y vector based on this index for the 
+  # second dimension of y 
+  y <- Y[,i]
+  
+  # Extract the coefficients from the lm object 
+  coeffs <- lm(y ~ x)$coefficients
+  # Return the coefficients in a row-wise matrix
+  return(t(matrix(coeffs)))
+
+}
+
+# Test the function on a random index between 1 and 1000
+test<-make_reg(991)
+
+test
+
+
+# Since our function takes index inputs, we will be applying it to a vector
+# of indices; we need lapply
+
+# This lapply call generates a list of row matrices containing 
+# the 6 coefficients for each regression
+
+# lapply(c(1:1000), make_reg)
+
+
+# Wrap this output in unlist and matrix to put it in the desired form
+all_coeffs <- matrix(unlist(lapply(c(1:1000), make_reg)), ncol=6, nrow=1000, byrow = TRUE)
+
+# Name the columns of the matrix informatively
+colnames(all_coeffs) <- c("B0", "B1", "B2", "B3", "B4", "B5")
+```
+\medskip
+
+4. Create a density plot for each of the 6 coefficients, each of which should have been estimated 1,000 times in the previous step. Describe what the density plot represents.
+```{r tidy=TRUE}
+
+# Test the plot call for one coefficient
+# plot(density(all_coeffs[,6]))
+
+# Define a function that again takes index inputs, 
+make_plot <- function(i){
+  coeff <- all_coeffs[,i]
+  # plots densities of each coefficient, with 
+  # named coefficient in title
+  plot(density(coeff), main=paste0("Beta",(i-1)))
+  
+}
+
+# Again use lapply to make the function call for 
+# each of the 6 indices
+lapply(c(1:6), make_plot)
+
+# Recall our Beta vector, out of which we made 
+# a linear combination of each x matrix
+# Beta <- matrix(c(1,2,0,4,0), ncol=1)
+
+### Interpretation: we added Gaussian noise to Y as a linear combination of X and Beta. Because of this, our coefficients are normally distributed around the original Beta values.
+
+```
+\medskip
+
+5. Re-run that code in parallel. Calculate the differences in run time.
+```{r tidy=TRUE}
+library(plyr)
+library(doMC)
+
+# See how long it took to run our 1000 regressions
+system.time(matrix(unlist(lapply(c(1:1000), make_reg)), ncol=6, nrow=1000, byrow = TRUE))
+
+# Now we'll split this up into more cores
+registerDoMC(cores=4) # This was as many as my computer would let me do
+system.time(matrix(unlist(lapply(c(1:1000), make_reg)), ncol=6, nrow=1000, byrow = TRUE))
+
+
+# make_plot <- function(i){
+#   coeff <- all_coeffs[,i]
+#   plot(density(coeff), main=paste0("Beta",(i-1)))
+#   
+# }
+# 
+# lapply(c(1:6), make_plot)
+
+```
+
+
